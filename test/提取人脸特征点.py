@@ -4,7 +4,7 @@ import dlib
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 # 项目根目录
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,6 +40,15 @@ while True:
             cv2.circle(frame, (x, y), 2, (0, 0, 255), -1)
             cv2.putText(frame, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
                         (255, 0, 255), 1)
+        area_eye_np = np.array([
+                (shape.part(17).x, shape.part(17).y),
+                (shape.part(26).x, shape.part(26).y),
+                (shape.part(15).x, shape.part(15).y),
+                (shape.part(1).x, shape.part(1).y)
+        ], np.int32)
+
+        # 绘制眼睛轮廓
+        cv2.polylines(frame, [area_eye_np], True, (0, 255, 0), 1)
 
         # 裁剪人脸区域
         face_img = frame[y1:y2, x1:x2]
