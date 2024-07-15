@@ -39,7 +39,7 @@ pip install dlib-19.19.0-cp38-cp38-win_amd64.whl  # 安装 dlib 库
 
 ---
 **运行项目**
-> 直接运行 main.py 文件即可启动眼球追踪功能：
+> 直接运行 src/Pupil_Tracking.py 文件即可启动眼球追踪功能：
 
 配置参数
 <br>
@@ -48,11 +48,10 @@ WAIT_TIME: 等待时间，单位为秒，默认为 16 秒。按 ESC 键可提前
 
 **代码结构**
 ```
-├── main.py                # 主程序文件
 ├── src
 │   ├── __init__.py        # 空文件，用于标识当前目录为 Python 包
-    ├── Pupil_Tracking.py  # 眼球追踪实现
-    └──ProUtils.py         # 工具函数库
+    ├── Pupil_Tracking.py  # 眼球追踪实现的主程序
+    └── ProUtils.py         # 工具函数库
 ├── data                   # 存放测试视频和图片
 ├── test.py                # 本人学习时的测试文件，仅供参考
 ├── requirements.txt       # 依赖库列表
