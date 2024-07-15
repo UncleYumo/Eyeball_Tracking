@@ -1,3 +1,5 @@
+import math
+
 import cv2
 import dlib
 import numpy as np
@@ -5,11 +7,25 @@ import os
 
 
 # 彩色打印 默认青色字体，无底色
-def color_print(msg, color=32, bg_color=None):   # 32:青色 31:红色 33:黄色 34:蓝色 35:紫色 36:天蓝色 37:白色
-    if bg_color is None:
-        print('\033[1;%dm%s\033[0m' % (color, msg))
+# red: 31, green: 32, yellow: 33, blue: 34, purple: 35, cyan: 36, white: 37
+def color_print(msg, color="cyan"):
+    if color == "red":
+        color_code = "\033[31m"
+    elif color == "green":
+        color_code = "\033[32m"
+    elif color == "yellow":
+        color_code = "\033[33m"
+    elif color == "blue":
+        color_code = "\033[34m"
+    elif color == "purple":
+        color_code = "\033[35m"
+    elif color == "cyan":
+        color_code = "\033[36m"
+    elif color == "white":
+        color_code = "\033[37m"
     else:
-        print('\033[1;%d;%dm%s\033[0m' % (color, bg_color, msg))
+        color_code = "\033[37m"
+    print(color_code + msg + "\033[0m")
 
 
 # 检查文件是否存在
@@ -71,32 +87,108 @@ def get_face_landmarks(img, face_dlib):
 
 
 # 绘制人脸关键点
-def draw_face_landmarks(img, face_landmarks):
+def draw_face_landmarks(img, face_landmarks, is_show_index=False):
     for i in range(68):
         x = face_landmarks.part(i).x
         y = face_landmarks.part(i).y
-        cv2.circle(img, (x, y), 2, (0, 255, 0), -1)  # 绘制人脸关键点
+        cv2.circle(img, (x, y), 1, (0, 255, 0), -1)  # 绘制人脸关键点
+        if is_show_index:
+            cv2.putText(img, str(i), (x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.3, (0, 0, 255), 1)  # 绘制人脸关键点索引
     # return img
 
 
-# 获取眼部矩形区域坐标
-def get_eye_region(face_landmarks):
-    eye_region = []
-    x1 = face_landmarks.part(17).x
-    y1 = face_landmarks.part(18).y
-    x2 = face_landmarks.part(26).x
-    y2 = face_landmarks.part(1).y
-    eye_region.append((x1, y1, x2, y2))
-    return eye_region
+# 获取眼部矩形区域四角坐标（已弃用）
+def get_eye_location(face_landmarks):
+    left_top_x = face_landmarks.part(0).x
+    left_top_y = face_landmarks.part(18).y
+    right_top_x = face_landmarks.part(16).x
+    right_top_y = face_landmarks.part(25).y
+    left_bottom_x = face_landmarks.part(2).x
+    left_bottom_y = face_landmarks.part(2).y
+    right_bottom_x = face_landmarks.part(16).x
+    right_bottom_y = face_landmarks.part(14).y
+    eye_rac_location = (
+        (left_top_x, left_top_y),  # eye_rac_location[0][0] and [0][1]
+        (right_top_x, right_top_y),  # eye_rac_location[1][0] and [1][1]
+        (left_bottom_x, left_bottom_y),  # eye_rac_location[2][0] and [2][1]
+        (right_bottom_x, right_bottom_y)  # eye_rac_location[3][0] and [3][1]
+    )
+    return eye_rac_location
 
 
-# 获取眼部图片区域
-def get_eyeImage_region(img, eye_region):
-    x1 = eye_region[0]
-    y1 = eye_region[1]
-    x2 = eye_region[2]
-    y2 = eye_region[3]
-    eye_images = img[y1:y2, x1:x2]
-    return eye_images
+# 获取眼部矩形区域四角坐标
+def get_eye_location_PLUS(face_landmarks):
+    top_y = min(face_landmarks.part(17).y, face_landmarks.part(26).y)
+    bottom_y = max(face_landmarks.part(1).y, face_landmarks.part(15).y)
+    left_x = face_landmarks.part(0).x
+    right_x = face_landmarks.part(16).x
+
+    eye_rac_location = (
+        (left_x, top_y),  # eye_rac_location[0][0] and [0][1]
+        (right_x, top_y),  # eye_rac_location[1][0] and [1][1]
+        (left_x, bottom_y),  # eye_rac_location[2][0] and [2][1]
+        (right_x, bottom_y)  # eye_rac_location[3][0] and [3][1]
+    )
+    return eye_rac_location
 
 
+# 获取左右眼的眼球中心坐标与眼球半径
+def get_pupil_location(face_landmarks):
+    left_pupil_x_left = face_landmarks.part(45).x
+    left_pupil_y_left = face_landmarks.part(45).y
+
+    left_pupil_x_right = face_landmarks.part(42).x
+    left_pupil_y_right = face_landmarks.part(42).y
+
+    left_pupil_radius = math.sqrt((left_pupil_x_left - left_pupil_x_right) ** 2 +
+                                  (left_pupil_y_left - left_pupil_y_right) ** 2) / 2
+    left_pupil_center = (int((left_pupil_x_left + left_pupil_x_right) / 2),
+                         int((left_pupil_y_left + left_pupil_y_right) / 2))
+
+    right_pupil_x_left = face_landmarks.part(39).x
+    right_pupil_y_left = face_landmarks.part(39).y
+
+    right_pupil_x_right = face_landmarks.part(36).x
+    right_pupil_y_right = face_landmarks.part(36).y
+
+    right_pupil_radius = math.sqrt((right_pupil_x_left - right_pupil_x_right) ** 2 +
+                                   (right_pupil_y_left - right_pupil_y_right) ** 2) / 2
+    right_pupil_center = (int((right_pupil_x_left + right_pupil_x_right) / 2),
+                          int((right_pupil_y_left + right_pupil_y_right) / 2))
+
+    return left_pupil_center, left_pupil_radius, right_pupil_center, right_pupil_radius
+
+
+def draw_eye_location(frame, eye_location):
+    if eye_location is None:
+        return None
+    cv2.rectangle(frame,
+                  (eye_location[0][0], eye_location[0][1]),
+                  (eye_location[3][0], eye_location[3][1]),
+                  (255, 0, 0),
+                  1)
+    # return frame
+
+
+# 获取眼部区域图片
+def get_eye_image(frame, eye_location):
+    if eye_location is None:
+        return None
+    rec_top_y = math.ceil((eye_location[0][1] + eye_location[1][1]) / 2)
+    rec_bottom_y = math.ceil((eye_location[2][1] + eye_location[3][1]) / 2)
+    rec_left_x = math.ceil((eye_location[0][0] + eye_location[2][0]) / 2)
+    rec_right_x = math.ceil((eye_location[1][0] + eye_location[3][0]) / 2)
+    eye_image = frame[rec_top_y:rec_bottom_y, rec_left_x:rec_right_x]
+    return eye_image
+
+
+def draw_pupil_location(frame, left_pupil_center, left_pupil_radius, param):
+    if left_pupil_center is None:
+        return None
+    cv2.circle(frame,
+               left_pupil_center,
+               int(left_pupil_radius),
+               param,
+               1)
+    # return frame
